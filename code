@@ -1,0 +1,122 @@
+import time
+import os
+import sounddevice as sd
+import numpy as np
+import scipy.io.wavfile as wav
+import speech_recognition as sr
+
+
+WORD_BANK = {
+    "1": {"name": "Principiante ", "words": ["caro","sol","luna","gato","día","carro","ojo","pero","goma","fruta","pala","casa","si","no","dos","uno"]},
+    "2": {"name": "Intermedio ", "words": ["Pájaro", "Gente", "Trabajo", "Guitarra","profecional","perro","gallo","esdrujula","lugar","comercial","señal","diagonal","cantar","policia","helado"]},
+    "3": {"name": "Experto ", "words": ["Ferrocarril", "Terremoto", "Desarrollador", "Refrigerador","infografia","modelacion","sierra","criterio","fructuaosa","criogenisacion","conspiracion","nucleolo","multicelular","ruiseñor","ordenador","enflorar","rrosario","termometro","hidroelectrica","eolica","generaciones","diccionario","traduccion"]}
+}
+FS = 44100  
+DURATION = 3  
+FILENAME = "temp_input.wav"
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def record_audio():
+    """Graba el micrófono usando sounddevice y lo guarda como un archivo WAV."""
+    print("\n [GRABANDO...] ¡Habla")
+    
+    audio_data = sd.rec(int(DURATION * FS), samplerate=FS, channels=1, dtype='int16')
+    sd.wait()  
+    print(" [GRABACIÓN TERMINADA] Procesando tu voz...")
+    
+    
+    wav.write(FILENAME, FS, audio_data)
+
+def recognize_speech():
+    """Usa speech_recognition para convertir el archivo temporal a texto en español."""
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(FILENAME) as source:
+        audio = recognizer.record(source)
+    try:
+        
+        text = recognizer.recognize_google(audio, language="es-ES")
+        return text.strip().lower()
+    except sr.UnknownValueError:
+        return ""
+    except sr.RequestError:
+        return "[Error de conexión con el motor de voz]"
+
+def play_game():
+    clear_screen()
+    print("     Practica el spanish  ")
+    print("dificultades disponibles:")
+    for key, level in WORD_BANK.items():
+        print(f" [{key}] {level['name']}")
+    
+    choice = input("\nElige una opción (1, 2 o 3): ").strip()
+    if choice not in WORD_BANK:
+        print("Opción inválida. Iniciando en modo Principiante por defecto...")
+        choice = "1"
+        time.sleep(1.5)
+
+    level_data = WORD_BANK[choice]
+    words_to_practice = level_data["words"]
+    
+    
+    score = 0
+    lives = 7
+    
+    clear_screen()
+    print(f" Cargando(tiempo de carga aprox: 3 segundos): {level_data['name']}")
+    time.sleep(3)
+    print("Reglas: Tienes 3 segundos para pronunciar cada palabra después de la señal.")
+    time.sleep(2.5)
+
+    for word in words_to_practice:
+        if lives <= 0:
+            break
+            
+        target_word = word.lower()
+        clear_screen()
+        
+        
+        print("=========================================")
+        print(f"  VIDAS: { '♥' * lives }{ '🖤' * (3 - lives) } | ⭐ SCORE: {score}")
+        print("=========================================")
+        print(f"\n   PRONUNCIA LA PALABRA: --->  【 {word.upper()} 】  <-\n")
+        print("Prepárate...")
+        for i in range(3, 0, -1):
+            print(f"¡En {i}...")
+            time.sleep(0.7)
+            
+        
+        record_audio()
+        interpretation = recognize_speech()
+        
+        print(f"\n El juego escuchó: \"{interpretation}\"")
+        
+        
+        if interpretation == target_word or target_word in interpretation:
+            score += 100
+            print(" ¡COMBO! ¡Excelente pronunciación! (+100 pts)")
+        else:
+            lives -= 1
+            print(" ¡Oops! Eso no sonó del todo correcto. Los nativos podrían confundirse.")
+            print(f"Palabra esperada: {target_word}")
+            
+        time.sleep(3)
+
+   
+    clear_screen()
+    print("..............hola")
+    if lives > 0 :
+        print("¡VICTORIA! puedes ir a LATAM 🏆")
+    else:
+        print("GAME OVER.Prueba una clase de sapanish 💀")
+    print("..............hola....................")
+    print(f" PUNTUACIÓN FINAL: {score} PTS")
+    print("...........fue...diverido.............\n")
+    
+    
+    if os.path.exists(FILENAME):
+        os.remove(FILENAME)
+
+if __name__ == "__main__":
+    play_game()
